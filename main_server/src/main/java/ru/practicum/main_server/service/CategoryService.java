@@ -29,7 +29,6 @@ public class CategoryService {
     }
 
     public CategoryDto getCategoryById(long id) {
-
         return CategoryMapper.toCategoryDto(categoryRepository.findById(id)
                 .orElseThrow(() -> new ObjectNotFoundException("Category not found")));
     }
@@ -44,9 +43,12 @@ public class CategoryService {
 
     @Transactional
     public void deleteCategory(Long catId) {
-        Category category = categoryRepository.findById(catId)
-                .orElseThrow(() -> new ObjectNotFoundException("Category not found"));
-        categoryRepository.delete(category);
+        if (categoryRepository.findById(catId).isPresent()) {
+            categoryRepository.deleteById(catId);
+        } else {
+            throw new ObjectNotFoundException("Category not found");
+        }
+
     }
 
     @Transactional

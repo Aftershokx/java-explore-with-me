@@ -57,9 +57,12 @@ public class CompilationService {
 
     @Transactional
     public void deleteCompilation(Long compId) {
-        Compilation compilation = compilationRepository.findById(compId)
-                .orElseThrow(() -> new ObjectNotFoundException("Compilation not found"));
-        compilationRepository.delete(compilation);
+        if (compilationRepository.findById(compId).isPresent()) {
+            compilationRepository.deleteById(compId);
+        } else {
+            throw new ObjectNotFoundException("Compilation not found");
+        }
+
     }
 
     public void deleteEventFromCompilation(Long compId, Long eventId) {
