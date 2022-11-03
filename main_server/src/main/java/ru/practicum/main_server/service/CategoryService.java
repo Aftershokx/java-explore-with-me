@@ -1,6 +1,7 @@
 package ru.practicum.main_server.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import ru.practicum.main_server.repository.CategoryRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -29,8 +31,8 @@ public class CategoryService {
     }
 
     public CategoryDto getCategoryById(long id) {
-        return CategoryMapper.toCategoryDto(categoryRepository.findById(id)
-                .orElseThrow(() -> new ObjectNotFoundException("Category not found")));
+        return CategoryMapper.toCategoryDto(categoryRepository.findById(id).orElseThrow(() ->
+                new ObjectNotFoundException("Category not found")));
     }
 
     @Transactional
@@ -48,7 +50,6 @@ public class CategoryService {
         } else {
             throw new ObjectNotFoundException("Category not found");
         }
-
     }
 
     @Transactional

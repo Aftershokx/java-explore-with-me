@@ -31,7 +31,7 @@ services:
     container_name: main_server
     restart: always
     ports:
-      - "8080:8080"
+      - "8081:8081"
     depends_on:
       - ewm-db
     environment:
