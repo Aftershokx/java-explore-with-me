@@ -1,11 +1,13 @@
 package ru.practicum.main_server.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.main_server.dto.CategoryDto;
+import ru.practicum.main_server.dto.CategoryResponseDto;
 import ru.practicum.main_server.service.CategoryService;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping(path = "/categories")
 public class CategoryController {
@@ -16,13 +18,15 @@ public class CategoryController {
     }
 
     @GetMapping
-    List<CategoryDto> getCategories(@RequestParam(defaultValue = "0") int from,
-                                    @RequestParam(defaultValue = "10") int size) {
+    List<CategoryResponseDto> getCategories(@RequestParam(defaultValue = "0") int from,
+                                            @RequestParam(defaultValue = "10") int size) {
+        log.info("Get categories() from " + from + " ,size " + size);
         return categoryService.getCategories(from, size);
     }
 
     @GetMapping("/{id}")
-    CategoryDto getCategoryById(@PathVariable long id) {
+    CategoryResponseDto getCategoryById(@PathVariable long id) {
+        log.info("Get categoryById() " + id);
         return categoryService.getCategoryById(id);
     }
 }

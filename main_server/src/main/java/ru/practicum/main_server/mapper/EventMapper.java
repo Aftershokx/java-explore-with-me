@@ -1,9 +1,9 @@
 package ru.practicum.main_server.mapper;
 
 import lombok.experimental.UtilityClass;
-import ru.practicum.main_server.dto.EventFullDto;
+import ru.practicum.main_server.dto.EventResponseDto;
 import ru.practicum.main_server.dto.EventShortDto;
-import ru.practicum.main_server.dto.NewEventDto;
+import ru.practicum.main_server.dto.EventRequestDto;
 import ru.practicum.main_server.model.Event;
 import ru.practicum.main_server.model.State;
 
@@ -25,8 +25,8 @@ public class EventMapper {
                 .build();
     }
 
-    public static EventFullDto toEventFullDto(Event event) {
-        return EventFullDto.builder()
+    public static EventResponseDto toEventFullDto(Event event) {
+        return EventResponseDto.builder()
                 .id(event.getId())
                 .annotation(event.getAnnotation())
                 .category(CategoryMapper.toCategoryDto(event.getCategory()))
@@ -45,17 +45,17 @@ public class EventMapper {
                 .build();
     }
 
-    public static Event toNewEvent(NewEventDto newEventDto) {
+    public static Event toNewEvent(EventRequestDto eventRequestDto) {
         return Event.builder()
-                .annotation(newEventDto.getAnnotation())
-                .description(newEventDto.getDescription())
-                .eventDate(LocalDateTime.parse(newEventDto.getEventDate(),
+                .annotation(eventRequestDto.getAnnotation())
+                .description(eventRequestDto.getDescription())
+                .eventDate(LocalDateTime.parse(eventRequestDto.getEventDate(),
                         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-                .paid(newEventDto.isPaid())
-                .participantLimit(newEventDto.getParticipantLimit())
-                .requestModeration(newEventDto.isRequestModeration())
+                .paid(eventRequestDto.isPaid())
+                .participantLimit(eventRequestDto.getParticipantLimit())
+                .requestModeration(eventRequestDto.isRequestModeration())
                 .state(State.PENDING)
-                .title(newEventDto.getTitle())
+                .title(eventRequestDto.getTitle())
                 .createdOn(LocalDateTime.now())
                 .build();
     }

@@ -1,12 +1,14 @@
 package ru.practicum.main_server.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.main_server.dto.NewUserRequest;
-import ru.practicum.main_server.dto.UserDto;
+import ru.practicum.main_server.dto.UserRequestDto;
+import ru.practicum.main_server.dto.UserResponseDto;
 import ru.practicum.main_server.service.UserService;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping(path = "admin/users")
 public class UserAdminController {
@@ -17,20 +19,23 @@ public class UserAdminController {
     }
 
     @GetMapping
-    public List<UserDto> getUsers(
+    public List<UserResponseDto> getUsers(
             @RequestParam(required = false) List<Long> ids,
             @RequestParam(defaultValue = "0", required = false) int from,
             @RequestParam(defaultValue = "10", required = false) int size) {
+        log.info("Get Users(), ids " + ids + " , from " + from + " , size" + size);
         return userService.getUsers(ids, from, size);
     }
 
     @PostMapping
-    public UserDto saveUser(@RequestBody NewUserRequest newUserRequest) {
-        return userService.saveUser(newUserRequest);
+    public UserResponseDto saveUser(@RequestBody UserRequestDto userRequestDto) {
+        log.info("Post createUser(), body " + userRequestDto);
+        return userService.saveUser(userRequestDto);
     }
 
     @DeleteMapping("/{userId}")
     public void deleteUser(@PathVariable Long userId) {
+        log.info("Delete delete user(), userId " + userId);
         userService.deleteUser(userId);
     }
 }

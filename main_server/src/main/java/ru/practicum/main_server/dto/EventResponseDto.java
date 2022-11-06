@@ -10,10 +10,10 @@ import ru.practicum.main_server.model.Location;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EventFullDto {
+public class EventResponseDto {
     private Long id;
     private String annotation;
-    private CategoryDto category;
+    private CategoryResponseDto category;
     private int confirmedRequests;
     private String createdOn;
     private String description;

@@ -1,14 +1,13 @@
 package ru.practicum.main_server.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.main_server.dto.CompilationDto;
+import ru.practicum.main_server.dto.CompilationRequestDto;
+import ru.practicum.main_server.dto.CompilationResponseDto;
 import ru.practicum.main_server.dto.EventShortDto;
-import ru.practicum.main_server.dto.NewCompilationDto;
 import ru.practicum.main_server.exception.ObjectNotFoundException;
 import ru.practicum.main_server.mapper.CompilationMapper;
 import ru.practicum.main_server.model.Compilation;
@@ -19,7 +18,6 @@ import ru.practicum.main_server.repository.EventRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
@@ -28,8 +26,7 @@ public class CompilationService {
     private final EventRepository eventRepository;
     private final EventService eventService;
 
-    public List<CompilationDto> getCompilations(Boolean pinned, int from, int size) {
-        log.info("getCompilations");
+    public List<CompilationResponseDto> getCompilations(Boolean pinned, int from, int size) {
         return compilationRepository.findAllByPinned(pinned, PageRequest.of(from / size, size))
                 .stream()
                 .map(CompilationMapper::toCompilationDto)
@@ -37,40 +34,30 @@ public class CompilationService {
                 .collect(Collectors.toList());
     }
 
-    public CompilationDto getCompilationById(long id) {
-        log.info("getCompilationById");
-        CompilationDto compilationDto = CompilationMapper.toCompilationDto(compilationRepository.findById(id)
+    public CompilationResponseDto getCompilationById(long id) {
+        return CompilationMapper.toCompilationDto(compilationRepository.findById(id)
                 .orElseThrow(() -> new ObjectNotFoundException("Compilation not found")));
-        log.info("getcompilation " + compilationRepository.findById(id)
-                .orElseThrow(() -> new ObjectNotFoundException("Compilation not found")));
-        CompilationDto updated = setViewsAndConfirmedRequestsInDto(compilationDto);
-        if (compilationDto.getEvents().size() > 0) {
-            log.info("updated" + updated);
-            return updated;
-        }
-        return compilationDto;
     }
 
     @Transactional
-    public CompilationDto createCompilation(NewCompilationDto newCompilationDto) {
-        log.info("create compilation");
-        Compilation compilation = CompilationMapper.toCompilation(newCompilationDto);
-        List<Event> events = newCompilationDto.getEvents()
+    public CompilationResponseDto createCompilation(CompilationRequestDto compilationRequestDto) {
+        Compilation compilation = CompilationMapper.toCompilation(compilationRequestDto);
+        List<Event> events = compilationRequestDto.getEvents()
                 .stream()
                 .map(id -> eventRepository.findById(id)
                         .orElseThrow(() -> new ObjectNotFoundException("Compilation not found")))
                 .collect(Collectors.toList());
         compilation.setEvents(events);
         Compilation newCompilation = compilationRepository.save(compilation);
-        CompilationDto compilationDto = CompilationMapper.toCompilationDto(newCompilation);
-        return setViewsAndConfirmedRequestsInDto(compilationDto);
+        CompilationResponseDto compilationResponseDto = CompilationMapper.toCompilationDto(newCompilation);
+        return setViewsAndConfirmedRequestsInDto(compilationResponseDto);
     }
 
     @Transactional
     public void deleteCompilation(Long compId) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new ObjectNotFoundException("Compilation not found"));
-        compilationRepository.delete(compilation);
+        compilationRepository.deleteById(compilation.getId());
     }
 
     @Transactional
@@ -85,14 +72,10 @@ public class CompilationService {
             throw new ObjectNotFoundException("Event not found");
         }
         compilationRepository.save(compilation);
-        log.info("save" + compilation);
-        log.info("save check " + compilationRepository.findById(compId)
-                .orElseThrow(() -> new ObjectNotFoundException("Compilation not found")));
     }
 
     @Transactional
     public void addEventToCompilation(Long compId, Long eventId) {
-        log.info("add event to compilation");
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new ObjectNotFoundException("Compilation not found"));
         List<Event> events = compilation.getEvents();
@@ -116,13 +99,12 @@ public class CompilationService {
         compilationRepository.save(compilation);
     }
 
-    private CompilationDto setViewsAndConfirmedRequestsInDto(CompilationDto compilationDto) {
-        log.info("setvievs");
-        List<EventShortDto> eventShortDtos = compilationDto.getEvents()
+    private CompilationResponseDto setViewsAndConfirmedRequestsInDto(CompilationResponseDto compilationResponseDto) {
+        List<EventShortDto> eventShortDtoList = compilationResponseDto.getEvents()
                 .stream()
                 .map(eventService::setConfirmedRequestsAndViewsEventShortDto)
                 .collect(Collectors.toList());
-        compilationDto.setEvents(eventShortDtos);
-        return compilationDto;
+        compilationResponseDto.setEvents(eventShortDtoList);
+        return compilationResponseDto;
     }
 }

@@ -1,7 +1,6 @@
 package ru.practicum.main_server.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -20,14 +19,10 @@ import ru.practicum.main_server.repository.ParticipationRepository;
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@Slf4j
 @Transactional(readOnly = true)
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class EventService {
@@ -61,27 +56,27 @@ public class EventService {
                     .collect(Collectors.toList());
         }
 
-        List<EventShortDto> eventShortDtos = events.stream()
+        List<EventShortDto> eventShortDtoList = events.stream()
                 .filter(event -> event.getState().equals(State.PUBLISHED))
                 .map(EventMapper::toEventShortDto)
                 .map(this::setConfirmedRequestsAndViewsEventShortDto)
                 .collect(Collectors.toList());
         if (sort.equals("VIEWS")) {
-            eventShortDtos = eventShortDtos.stream()
+            eventShortDtoList = eventShortDtoList.stream()
                     .sorted(Comparator.comparing(EventShortDto::getViews))
                     .collect(Collectors.toList());
         }
         if (onlyAvailable) {
-            eventShortDtos = eventShortDtos.stream()
+            eventShortDtoList = eventShortDtoList.stream()
                     .filter(eventShortDto -> eventShortDto.getConfirmedRequests()
                             <= checkAndGetEvent(eventShortDto.getId()).getParticipantLimit())
                     .collect(Collectors.toList());
         }
-        return eventShortDtos;
+        return eventShortDtoList;
     }
 
-    public EventFullDto getEventById(long id) {
-        EventFullDto dto = EventMapper.toEventFullDto(checkAndGetEvent(id));
+    public EventResponseDto getEventById(long id) {
+        EventResponseDto dto = EventMapper.toEventFullDto(checkAndGetEvent(id));
         if (!(dto.getState().equals(State.PUBLISHED.toString()))) {
             throw new WrongRequestException("Wrong state by request");
         }
@@ -97,7 +92,7 @@ public class EventService {
     }
 
     @Transactional
-    public EventFullDto updateEvent(Long userId, UpdateEventRequest updateEventRequest) {
+    public EventResponseDto updateEvent(Long userId, UpdateEventRequest updateEventRequest) {
 
         Event event = checkAndGetEvent(updateEventRequest.getEventId());
         if (!event.getInitiator().getId().equals(userId)) {
@@ -135,33 +130,30 @@ public class EventService {
             event.setTitle(updateEventRequest.getTitle());
         }
         event = eventRepository.save(event);
-        EventFullDto eventFullDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventFullDto);
+        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
+        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
     }
 
     @Transactional
-    public EventFullDto createEvent(Long userId, NewEventDto newEventDto) {
-        Location location = newEventDto.getLocation();
-        log.info("before location save");
+    public EventResponseDto createEvent(Long userId, EventRequestDto eventRequestDto) {
+        Location location = eventRequestDto.getLocation();
         location = locationService.save(location);
-        log.info("location save");
-        Event event = EventMapper.toNewEvent(newEventDto);
-        log.info("event {}", event);
+        Event event = EventMapper.toNewEvent(eventRequestDto);
         if (event.getEventDate().isBefore(LocalDateTime.now().minusHours(2))) {
             throw new WrongRequestException("date event is too late");
         }
         event.setInitiator(userService.checkAndGetUser(userId));
-        Category category = categoryRepository.findById(newEventDto.getCategory())
+        Category category = categoryRepository.findById(eventRequestDto.getCategory())
                 .orElseThrow(() -> new ObjectNotFoundException("Category not found"));
         event.setCategory(category);
         event.setLocation(location);
 
         event = eventRepository.save(event);
-        EventFullDto eventFullDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventFullDto);
+        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
+        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
     }
 
-    public EventFullDto getEventCurrentUser(Long userId, Long eventId) {
+    public EventResponseDto getEventCurrentUser(Long userId, Long eventId) {
         Event event = checkAndGetEvent(eventId);
         if (!event.getInitiator().getId().equals(userId)) {
             throw new WrongRequestException("only initiator can get fullEventDto");
@@ -170,7 +162,7 @@ public class EventService {
     }
 
     @Transactional
-    public EventFullDto cancelEvent(Long userId, Long eventId) {
+    public EventResponseDto cancelEvent(Long userId, Long eventId) {
         Event event = checkAndGetEvent(eventId);
         if (!event.getInitiator().getId().equals(userId)) {
             throw new WrongRequestException("only initiator can cancel event");
@@ -180,13 +172,13 @@ public class EventService {
         }
         event.setState(State.CANCELED);
         event = eventRepository.save(event);
-        EventFullDto eventFullDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventFullDto);
+        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
+        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
     }
 
 
-    public List<EventFullDto> getAdminEvents(List<Long> users, List<State> states, List<Long> categories,
-                                             String rangeStart, String rangeEnd, int from, int size) {
+    public List<EventResponseDto> getAdminEvents(List<Long> users, List<State> states, List<Long> categories,
+                                                 String rangeStart, String rangeEnd, int from, int size) {
         LocalDateTime start;
         if (rangeStart == null) {
             start = LocalDateTime.now();
@@ -209,7 +201,7 @@ public class EventService {
     }
 
     @Transactional
-    public EventFullDto updateEventByAdmin(Long eventId, AdminUpdateEventRequest adminUpdateEventRequest) {
+    public EventResponseDto updateEventByAdmin(Long eventId, AdminUpdateEventRequest adminUpdateEventRequest) {
         Event event = checkAndGetEvent(eventId);
 
         Optional.ofNullable(adminUpdateEventRequest.getAnnotation())
@@ -249,12 +241,12 @@ public class EventService {
                 .ifPresent(event::setTitle);
 
         event = eventRepository.save(event);
-        EventFullDto eventFullDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventFullDto);
+        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
+        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
     }
 
     @Transactional
-    public EventFullDto publishEventByAdmin(Long eventId) {
+    public EventResponseDto publishEventByAdmin(Long eventId) {
         Event event = checkAndGetEvent(eventId);
         if (event.getEventDate().isBefore(LocalDateTime.now().minusHours(2))) {
             throw new WrongRequestException("date event is too late");
@@ -264,18 +256,18 @@ public class EventService {
         }
         event.setState(State.PUBLISHED);
         event = eventRepository.save(event);
-        EventFullDto eventFullDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventFullDto);
+        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
+        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
     }
 
     @Transactional
-    public EventFullDto rejectEventByAdmin(Long eventId) {
+    public EventResponseDto rejectEventByAdmin(Long eventId) {
         Event event = checkAndGetEvent(eventId);
 
         event.setState(State.CANCELED);
         event = eventRepository.save(event);
-        EventFullDto eventFullDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventFullDto);
+        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
+        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
     }
 
     public Event checkAndGetEvent(long eventId) {
@@ -291,12 +283,12 @@ public class EventService {
         return eventShortDto;
     }
 
-    public EventFullDto setConfirmedRequestsAndViewsEventFullDto(EventFullDto eventFullDto) {
+    public EventResponseDto setConfirmedRequestsAndViewsEventFullDto(EventResponseDto eventResponseDto) {
         int confirmedRequests = participationRepository
-                .countByEventIdAndStatus(eventFullDto.getId(), StatusRequest.CONFIRMED);
-        eventFullDto.setConfirmedRequests(confirmedRequests);
-        eventFullDto.setViews(getViews(eventFullDto.getId()));
-        return eventFullDto;
+                .countByEventIdAndStatus(eventResponseDto.getId(), StatusRequest.CONFIRMED);
+        eventResponseDto.setConfirmedRequests(confirmedRequests);
+        eventResponseDto.setViews(getViews(eventResponseDto.getId()));
+        return eventResponseDto;
     }
 
     public int getViews(long eventId) {
@@ -305,18 +297,14 @@ public class EventService {
                 LocalDateTime.now(),
                 List.of("/events/" + eventId),
                 false);
-
-        log.info("responseEntity {}", responseEntity.getBody());
-        if (responseEntity.getBody().equals("")) {
-            Integer hits = (Integer) ((LinkedHashMap) responseEntity.getBody()).get("hits");
-            return hits;
+        if (Objects.requireNonNull(responseEntity.getBody()).equals("")) {
+            return (Integer) ((LinkedHashMap<?, ?>) responseEntity.getBody()).get("hits");
         }
 
         return 0;
     }
 
     public void sentHitStat(HttpServletRequest request) {
-        log.info("request URL {}", request.getRequestURI());
         EndpointHit endpointHit = EndpointHit.builder()
                 .app("main_server")
                 .uri(request.getRequestURI())

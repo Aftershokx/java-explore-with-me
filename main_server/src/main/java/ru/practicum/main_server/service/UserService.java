@@ -5,8 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.main_server.dto.NewUserRequest;
-import ru.practicum.main_server.dto.UserDto;
+import ru.practicum.main_server.dto.UserRequestDto;
+import ru.practicum.main_server.dto.UserResponseDto;
 import ru.practicum.main_server.exception.ObjectNotFoundException;
 import ru.practicum.main_server.mapper.UserMapper;
 import ru.practicum.main_server.model.User;
@@ -22,7 +22,7 @@ public class UserService {
     private final UserRepository userRepository;
 
 
-    public List<UserDto> getUsers(List<Long> ids, int from, int size) {
+    public List<UserResponseDto> getUsers(List<Long> ids, int from, int size) {
         if (ids.isEmpty()) {
             return userRepository.findAll(PageRequest.of(from / size, size))
                     .stream()
@@ -36,8 +36,8 @@ public class UserService {
     }
 
     @Transactional
-    public UserDto saveUser(NewUserRequest newUserRequest) {
-        return UserMapper.toUserDto(userRepository.save(UserMapper.toUser(newUserRequest)));
+    public UserResponseDto saveUser(UserRequestDto userRequestDto) {
+        return UserMapper.toUserDto(userRepository.save(UserMapper.toUser(userRequestDto)));
     }
 
     @Transactional

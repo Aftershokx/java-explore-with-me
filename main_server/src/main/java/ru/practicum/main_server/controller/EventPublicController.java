@@ -1,13 +1,15 @@
 package ru.practicum.main_server.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.main_server.dto.EventFullDto;
+import ru.practicum.main_server.dto.EventResponseDto;
 import ru.practicum.main_server.dto.EventShortDto;
 import ru.practicum.main_server.service.EventService;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping(path = "/events")
 public class EventPublicController {
@@ -29,13 +31,17 @@ public class EventPublicController {
                                   @RequestParam(defaultValue = "10") int size,
                                   HttpServletRequest request) {
         eventService.sentHitStat(request);
+        log.info("Get events(), text " + text + " , categories " + categories + " , paid " + paid +
+                " , rangeStart " + rangeStart + " , rangeEnd " + rangeEnd + " , onlyAvailable " + onlyAvailable +
+                " ,sort" + sort + " , from " + from + " ,size " + size);
         return eventService
                 .getEvents(text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size);
     }
 
     @GetMapping("/{id}")
-    EventFullDto getEventById(@PathVariable long id, HttpServletRequest request) {
+    EventResponseDto getEventById(@PathVariable long id, HttpServletRequest request) {
         eventService.sentHitStat(request);
+        log.info("Get get event by id(), id " + id);
         return eventService.getEventById(id);
     }
 }

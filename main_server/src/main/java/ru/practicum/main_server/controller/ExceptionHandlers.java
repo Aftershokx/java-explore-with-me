@@ -16,16 +16,6 @@ import java.time.LocalDateTime;
 public class ExceptionHandlers {
     static final String REASON_MESSAGE = "object not found";
 
- /*   @ExceptionHandler(ObjectNotFoundException.class)
-    public ApiError notFound(RuntimeException e) {
-        return ApiError.builder()
-                .status(String.valueOf(HttpStatus.NOT_FOUND))
-                .reason(REASON_MESSAGE)
-                .message(e.getLocalizedMessage())
-                .timestamp(LocalDateTime.now())
-                .build();
-    }*/
-
     @ExceptionHandler(WrongRequestException.class)
     public ApiError forbidden(RuntimeException e) {
         return ApiError.builder()

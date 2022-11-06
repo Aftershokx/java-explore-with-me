@@ -1,22 +1,22 @@
 package ru.practicum.main_server.dto;
 
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.validation.constraints.NotNull;
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EventShortDto {
+public class CompilationResponseDto {
     private Long id;
-    private String annotation;
-    private CategoryResponseDto category;
-    private int confirmedRequests;
-    private String eventDate;
-    private UserShortDto initiator;
-    private boolean paid;
+    private List<EventShortDto> events;
+    @NotNull
     private String title;
-    private int views;
+    private boolean pinned;
 }

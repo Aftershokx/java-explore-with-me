@@ -12,7 +12,7 @@ import javax.validation.constraints.NotNull;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class NewEventDto {
+public class EventRequestDto {
     private String annotation;
     private long category;
     private String description;

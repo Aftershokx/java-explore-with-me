@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class NewCategoryDto {
+public class UserResponseDto {
+    private Long id;
     private String name;
+    private String email;
 }

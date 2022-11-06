@@ -1,15 +1,15 @@
 package ru.practicum.main_server.mapper;
 
 import lombok.experimental.UtilityClass;
-import ru.practicum.main_server.dto.NewUserRequest;
-import ru.practicum.main_server.dto.UserDto;
+import ru.practicum.main_server.dto.UserRequestDto;
+import ru.practicum.main_server.dto.UserResponseDto;
 import ru.practicum.main_server.dto.UserShortDto;
 import ru.practicum.main_server.model.User;
 
 @UtilityClass
 public class UserMapper {
-    public static UserDto toUserDto(User user) {
-        return UserDto
+    public static UserResponseDto toUserDto(User user) {
+        return UserResponseDto
                 .builder()
                 .id(user.getId())
                 .name(user.getName())
@@ -25,11 +25,11 @@ public class UserMapper {
                 .build();
     }
 
-    public static User toUser(NewUserRequest newUserRequest) {
+    public static User toUser(UserRequestDto userRequestDto) {
         return User
                 .builder()
-                .name(newUserRequest.getName())
-                .email(newUserRequest.getEmail())
+                .name(userRequestDto.getName())
+                .email(userRequestDto.getEmail())
                 .build();
     }
 }
