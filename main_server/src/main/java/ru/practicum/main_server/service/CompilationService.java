@@ -86,7 +86,7 @@ public class CompilationService {
         }
         compilationRepository.save(compilation);
         log.info("save" + compilation);
-        log.info("save check "+compilationRepository.findById(compId)
+        log.info("save check " + compilationRepository.findById(compId)
                 .orElseThrow(() -> new ObjectNotFoundException("Compilation not found")));
     }
 
