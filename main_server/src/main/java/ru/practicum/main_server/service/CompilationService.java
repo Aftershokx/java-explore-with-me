@@ -90,6 +90,7 @@ public class CompilationService {
                 .orElseThrow(() -> new ObjectNotFoundException("Compilation not found")));
     }
 
+    @Transactional
     public void addEventToCompilation(Long compId, Long eventId) {
         log.info("add event to compilation");
         Compilation compilation = compilationRepository.findById(compId)
@@ -99,6 +100,7 @@ public class CompilationService {
         compilationRepository.save(compilation);
     }
 
+    @Transactional
     public void deleteCompilationFromMainPage(Long compId) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new ObjectNotFoundException("Compilation not found"));
@@ -106,6 +108,7 @@ public class CompilationService {
         compilationRepository.save(compilation);
     }
 
+    @Transactional
     public void addCompilationToMainPage(Long compId) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new ObjectNotFoundException("Compilation not found"));
