@@ -1,12 +1,16 @@
 package ru.practicum.main_server.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.main_server.dto.CompilationResponseDto;
 import ru.practicum.main_server.dto.CompilationRequestDto;
+import ru.practicum.main_server.dto.CompilationResponseDto;
 import ru.practicum.main_server.service.CompilationService;
 
+import javax.validation.Valid;
+
 @Slf4j
+@Validated
 @RestController
 @RequestMapping(path = "admin/compilations")
 public class CompilationAdminController {
@@ -17,7 +21,7 @@ public class CompilationAdminController {
     }
 
     @PostMapping
-    public CompilationResponseDto createCompilation(@RequestBody CompilationRequestDto compilationRequestDto) {
+    public CompilationResponseDto createCompilation(@RequestBody @Valid CompilationRequestDto compilationRequestDto) {
         log.info("Post compilation() " + compilationRequestDto);
         return compilationService.createCompilation(compilationRequestDto);
     }

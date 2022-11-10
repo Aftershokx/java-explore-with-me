@@ -1,9 +1,9 @@
 package ru.practicum.main_server.mapper;
 
 import lombok.experimental.UtilityClass;
+import ru.practicum.main_server.dto.CompilationRequestDto;
 import ru.practicum.main_server.dto.CompilationResponseDto;
 import ru.practicum.main_server.dto.EventShortDto;
-import ru.practicum.main_server.dto.CompilationRequestDto;
 import ru.practicum.main_server.model.Compilation;
 
 import java.util.List;

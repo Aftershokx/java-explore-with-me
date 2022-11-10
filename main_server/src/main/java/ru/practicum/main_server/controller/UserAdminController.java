@@ -1,14 +1,17 @@
 package ru.practicum.main_server.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main_server.dto.UserRequestDto;
 import ru.practicum.main_server.dto.UserResponseDto;
 import ru.practicum.main_server.service.UserService;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @Slf4j
+@Validated
 @RestController
 @RequestMapping(path = "admin/users")
 public class UserAdminController {
@@ -28,7 +31,7 @@ public class UserAdminController {
     }
 
     @PostMapping
-    public UserResponseDto saveUser(@RequestBody UserRequestDto userRequestDto) {
+    public UserResponseDto saveUser(@RequestBody @Valid UserRequestDto userRequestDto) {
         log.info("Post createUser(), body " + userRequestDto);
         return userService.saveUser(userRequestDto);
     }

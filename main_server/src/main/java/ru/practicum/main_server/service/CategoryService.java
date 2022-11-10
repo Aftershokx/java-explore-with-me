@@ -43,11 +43,9 @@ public class CategoryService {
 
     @Transactional
     public void deleteCategory(Long catId) {
-        if (categoryRepository.findById(catId).isPresent()) {
-            categoryRepository.deleteById(catId);
-        } else {
-            throw new ObjectNotFoundException("Category not found");
-        }
+        Category category = categoryRepository.findById(catId).orElseThrow(() ->
+                new ObjectNotFoundException("Category not found"));
+        categoryRepository.delete(category);
     }
 
     @Transactional

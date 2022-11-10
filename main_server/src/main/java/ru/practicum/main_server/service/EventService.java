@@ -3,91 +3,93 @@ package ru.practicum.main_server.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.main_server.client.HitClient;
 import ru.practicum.main_server.dto.*;
 import ru.practicum.main_server.exception.ObjectNotFoundException;
 import ru.practicum.main_server.exception.WrongRequestException;
+import ru.practicum.main_server.mapper.CommentMapper;
 import ru.practicum.main_server.mapper.EventMapper;
 import ru.practicum.main_server.model.*;
 import ru.practicum.main_server.repository.CategoryRepository;
+import ru.practicum.main_server.repository.CommentRepository;
 import ru.practicum.main_server.repository.EventRepository;
-import ru.practicum.main_server.repository.ParticipationRepository;
+import ru.practicum.main_server.repository.UserRepository;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class EventService {
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final EventRepository eventRepository;
-    private final ParticipationRepository participationRepository;
     private final UserService userService;
     private final HitClient hitClient;
+    private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
+    private final CommentRepository commentRepository;
     private final LocationService locationService;
 
 
     public List<EventShortDto> getEvents(String text, List<Long> categories, Boolean paid, String rangeStart,
                                          String rangeEnd, Boolean onlyAvailable, String sort, int from, int size) {
         LocalDateTime start = (rangeStart == null) ? LocalDateTime.now() :
-                LocalDateTime.parse(rangeStart, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                LocalDateTime.parse(rangeStart, DATE_TIME_FORMATTER);
 
         LocalDateTime end;
         if (rangeEnd == null) {
-            end = LocalDateTime.MAX;
+            end = LocalDateTime.now().plusYears(2);
         } else {
-            end = LocalDateTime.parse(rangeEnd, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            end = LocalDateTime.parse(rangeEnd, DATE_TIME_FORMATTER);
         }
-
-        List<Event> events = eventRepository.searchEvents(text, categories, paid, start, end,
-                        PageRequest.of(from / size, size))
-                .stream()
-                .collect(Collectors.toList());
-        if (sort.equals("EVENT_DATE")) {
-            events = events.stream()
-                    .sorted(Comparator.comparing(Event::getEventDate))
-                    .collect(Collectors.toList());
-        }
-
-        List<EventShortDto> eventShortDtoList = events.stream()
-                .filter(event -> event.getState().equals(State.PUBLISHED))
-                .map(EventMapper::toEventShortDto)
-                .map(this::setConfirmedRequestsAndViewsEventShortDto)
-                .collect(Collectors.toList());
-        if (sort.equals("VIEWS")) {
-            eventShortDtoList = eventShortDtoList.stream()
-                    .sorted(Comparator.comparing(EventShortDto::getViews))
-                    .collect(Collectors.toList());
-        }
+        List<Event> events = new ArrayList<>();
         if (onlyAvailable) {
-            eventShortDtoList = eventShortDtoList.stream()
-                    .filter(eventShortDto -> eventShortDto.getConfirmedRequests()
-                            <= checkAndGetEvent(eventShortDto.getId()).getParticipantLimit())
-                    .collect(Collectors.toList());
+            if (sort.equals("EVENT_DATE")) {
+                events = eventRepository.searchEventsAvailableOrderByEventDate(text, categories, paid, start,
+                        end, PageRequest.of(from / size, size));
+            } else if (sort.equals("VIEWS")) {
+                events = eventRepository.searchEventsAvailableOrderByViews(text, categories, paid, start,
+                        end, PageRequest.of(from / size, size));
+            }
+        } else {
+            if (sort.equals("EVENT_DATE")) {
+                events = eventRepository.searchEventsAllOrderByEventDate(text, categories, paid, start,
+                        end, PageRequest.of(from / size, size));
+            } else if (sort.equals("VIEWS")) {
+                events = eventRepository.searchEventsAllOrderByViews(text, categories, paid, start,
+                        end, PageRequest.of(from / size, size));
+            }
         }
-        return eventShortDtoList;
+        return events.stream()
+                .map(EventMapper::toEventShortDto)
+                .collect(Collectors.toList());
     }
 
     public EventResponseDto getEventById(long id) {
-        EventResponseDto dto = EventMapper.toEventFullDto(checkAndGetEvent(id));
-        if (!(dto.getState().equals(State.PUBLISHED.toString()))) {
+        Event event = eventRepository.findById(id).orElseThrow(() ->
+                new ObjectNotFoundException("Event not found"));
+        if (!(event.getState().equals(State.PUBLISHED))) {
             throw new WrongRequestException("Wrong state by request");
         }
-        return setConfirmedRequestsAndViewsEventFullDto(dto);
+        setComments(event);
+        viewsCounter(event);
+        return EventMapper.toEventFullDto(event);
     }
 
     public List<EventShortDto> getEventsCurrentUser(long userId, int from, int size) {
         return eventRepository.findAllByInitiatorId(userId, PageRequest.of(from / size, size))
                 .stream()
                 .map(EventMapper::toEventShortDto)
-                .map(this::setConfirmedRequestsAndViewsEventShortDto)
                 .collect(Collectors.toList());
     }
 
@@ -111,7 +113,7 @@ public class EventService {
         }
         if (updateEventRequest.getEventDate() != null) {
             LocalDateTime date = LocalDateTime.parse(updateEventRequest.getEventDate(),
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                    DATE_TIME_FORMATTER);
             if (date.isBefore(LocalDateTime.now().minusHours(2))) {
                 throw new WrongRequestException("date event is too late");
             }
@@ -130,8 +132,8 @@ public class EventService {
             event.setTitle(updateEventRequest.getTitle());
         }
         event = eventRepository.save(event);
-        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
+        setComments(event);
+        return EventMapper.toEventFullDto(event);
     }
 
     @Transactional
@@ -149,8 +151,8 @@ public class EventService {
         event.setLocation(location);
 
         event = eventRepository.save(event);
-        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
+        setComments(event);
+        return EventMapper.toEventFullDto(event);
     }
 
     public EventResponseDto getEventCurrentUser(Long userId, Long eventId) {
@@ -158,7 +160,9 @@ public class EventService {
         if (!event.getInitiator().getId().equals(userId)) {
             throw new WrongRequestException("only initiator can get fullEventDto");
         }
-        return setConfirmedRequestsAndViewsEventFullDto(EventMapper.toEventFullDto(event));
+        setComments(event);
+        viewsCounter(event);
+        return EventMapper.toEventFullDto(event);
     }
 
     @Transactional
@@ -171,9 +175,9 @@ public class EventService {
             throw new WrongRequestException("you can cancel only pending event");
         }
         event.setState(State.CANCELED);
-        event = eventRepository.save(event);
-        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
+        setComments(event);
+        viewsCounter(event);
+        return EventMapper.toEventFullDto(event);
     }
 
 
@@ -183,20 +187,21 @@ public class EventService {
         if (rangeStart == null) {
             start = LocalDateTime.now();
         } else {
-            start = LocalDateTime.parse(rangeStart, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            start = LocalDateTime.parse(rangeStart, DATE_TIME_FORMATTER);
         }
         LocalDateTime end;
         if (rangeEnd == null) {
-            end = LocalDateTime.MAX;
+            end = LocalDateTime.now().plusYears(2);
         } else {
-            end = LocalDateTime.parse(rangeEnd, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            end = LocalDateTime.parse(rangeEnd, DATE_TIME_FORMATTER);
         }
-
-        return eventRepository.searchEventsByAdmin(users, states, categories, start, end,
-                        PageRequest.of(from / size, size))
-                .stream()
+        List<Event> events = eventRepository.searchEventsByAdmin(users, states, categories, start, end,
+                PageRequest.of(from / size, size));
+        for (Event event : events) {
+            setComments(event);
+        }
+        return events.stream()
                 .map(EventMapper::toEventFullDto)
-                .map(this::setConfirmedRequestsAndViewsEventFullDto)
                 .collect(Collectors.toList());
     }
 
@@ -219,7 +224,7 @@ public class EventService {
 
         if (adminUpdateEventRequest.getEventDate() != null) {
             LocalDateTime date = LocalDateTime.parse(adminUpdateEventRequest.getEventDate(),
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                    DATE_TIME_FORMATTER);
             if (date.isBefore(LocalDateTime.now().minusHours(2))) {
                 throw new WrongRequestException("date event is too late");
             }
@@ -239,10 +244,9 @@ public class EventService {
 
         Optional.ofNullable(adminUpdateEventRequest.getTitle())
                 .ifPresent(event::setTitle);
-
-        event = eventRepository.save(event);
-        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
+        setComments(event);
+        viewsCounter(event);
+        return EventMapper.toEventFullDto(event);
     }
 
     @Transactional
@@ -255,19 +259,18 @@ public class EventService {
             throw new WrongRequestException("admin can publish only pending event");
         }
         event.setState(State.PUBLISHED);
-        event = eventRepository.save(event);
-        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
+        setComments(event);
+        viewsCounter(event);
+        return EventMapper.toEventFullDto(event);
     }
 
     @Transactional
     public EventResponseDto rejectEventByAdmin(Long eventId) {
         Event event = checkAndGetEvent(eventId);
-
         event.setState(State.CANCELED);
-        event = eventRepository.save(event);
-        EventResponseDto eventResponseDto = EventMapper.toEventFullDto(event);
-        return setConfirmedRequestsAndViewsEventFullDto(eventResponseDto);
+        setComments(event);
+        viewsCounter(event);
+        return EventMapper.toEventFullDto(event);
     }
 
     public Event checkAndGetEvent(long eventId) {
@@ -275,42 +278,85 @@ public class EventService {
                 new ObjectNotFoundException("event with id = " + eventId + " not found"));
     }
 
-    public EventShortDto setConfirmedRequestsAndViewsEventShortDto(EventShortDto eventShortDto) {
-        int confirmedRequests = participationRepository
-                .countByEventIdAndStatus(eventShortDto.getId(), StatusRequest.CONFIRMED);
-        eventShortDto.setConfirmedRequests(confirmedRequests);
-        eventShortDto.setViews(getViews(eventShortDto.getId()));
-        return eventShortDto;
-    }
-
-    public EventResponseDto setConfirmedRequestsAndViewsEventFullDto(EventResponseDto eventResponseDto) {
-        int confirmedRequests = participationRepository
-                .countByEventIdAndStatus(eventResponseDto.getId(), StatusRequest.CONFIRMED);
-        eventResponseDto.setConfirmedRequests(confirmedRequests);
-        eventResponseDto.setViews(getViews(eventResponseDto.getId()));
-        return eventResponseDto;
-    }
-
-    public int getViews(long eventId) {
-        ResponseEntity<Object> responseEntity = hitClient.getStat(
-                LocalDateTime.of(2020, 9, 1, 0, 0),
-                LocalDateTime.now(),
-                List.of("/events/" + eventId),
-                false);
-        if (Objects.requireNonNull(responseEntity.getBody()).equals("")) {
-            return (Integer) ((LinkedHashMap<?, ?>) responseEntity.getBody()).get("hits");
-        }
-
-        return 0;
-    }
-
     public void sentHitStat(HttpServletRequest request) {
         EndpointHit endpointHit = EndpointHit.builder()
                 .app("main_server")
                 .uri(request.getRequestURI())
                 .ip(request.getRemoteAddr())
-                .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .timestamp(LocalDateTime.now().format(DATE_TIME_FORMATTER))
                 .build();
         hitClient.createHit(endpointHit);
+    }
+
+    @Transactional
+    public Comment addComment(long userId, long eventId, CommentDto commentDto) {
+        return commentRepository.save(CommentMapper.toComment(commentDto,
+                userRepository.findById(userId).orElseThrow(() -> new ObjectNotFoundException("User not found")),
+                eventRepository.findById(eventId).orElseThrow(() -> new ObjectNotFoundException("Event not found"))));
+    }
+
+    public List<CommentDto> getCommentsByEvent(long eventId) {
+        return commentRepository.findAllByEvent_Id(eventId).orElseThrow(() ->
+                        new ObjectNotFoundException("Comments not found"))
+                .stream()
+                .map(CommentMapper::toCommentDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public Comment updateCommentByUser(long userId, long eventId, long commentId, CommentDto commentDto) {
+        Comment oldComment = commentRepository.findById(commentId).orElseThrow(() ->
+                new ObjectNotFoundException("Comment not found"));
+        User user = userRepository.findById(userId).orElseThrow(() ->
+                new ObjectNotFoundException("User not found"));
+        Event event = eventRepository.findById(eventId).orElseThrow(() ->
+                new ObjectNotFoundException("Event not found"));
+        if (userId != oldComment.getAuthor().getId()) {
+            throw new WrongRequestException("Only creator can moderate his comments");
+        }
+        Comment updated = CommentMapper.toComment(commentDto, user, event);
+        updated.setId(oldComment.getId());
+        updated.setAuthor(oldComment.getAuthor());
+        updated.setEvent(oldComment.getEvent());
+        updated.setCreated(oldComment.getCreated());
+        return commentRepository.save(updated);
+    }
+
+    @Transactional
+    public Comment updateCommentByAdmin(long eventId, long commentId, CommentDto commentDto) {
+        Comment comment = commentRepository.findById(commentId).orElseThrow(() ->
+                new ObjectNotFoundException("Comment not found"));
+        if (eventRepository.findById(eventId).isPresent()) {
+            comment.setText(commentDto.getText());
+        } else {
+            throw new ObjectNotFoundException("Event not found");
+        }
+        return commentRepository.save(comment);
+    }
+
+    @Transactional
+    public void deleteComment(long eventId, long commentId) {
+        if (eventRepository.findById(eventId).isPresent()) {
+            if (commentRepository.findById(commentId).isPresent()) {
+                commentRepository.deleteById(commentId);
+            } else {
+                throw new ObjectNotFoundException("Comment not found");
+            }
+        } else {
+            throw new ObjectNotFoundException("Event not found");
+        }
+    }
+
+    private void setComments(Event event) {
+        if (commentRepository.findAllByEvent_Id(event.getId()).isPresent()) {
+            event.setComments(new ArrayList<>(commentRepository.findAllByEvent_Id(event.getId()).get()));
+        } else {
+            event.setComments(Collections.emptyList());
+        }
+    }
+
+    private void viewsCounter(Event event) {
+        event.setViews(event.getViews() + 1);
+        eventRepository.save(event);
     }
 }

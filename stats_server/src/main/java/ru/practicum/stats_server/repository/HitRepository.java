@@ -1,13 +1,25 @@
 package ru.practicum.stats_server.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import ru.practicum.stats_server.model.HitModel;
+import ru.practicum.stats_server.model.ViewStats;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 public interface HitRepository extends JpaRepository<HitModel, Long> {
-    List<HitModel> findAllByUriAndTimestampBetween(String uri, LocalDateTime start, LocalDateTime end);
+    @Query("SELECT app AS app, uri AS uri, COUNT(ip) AS hit " +
+            "FROM HitModel " +
+            "WHERE :uris IS NULL OR uri IN :uris " +
+            "AND timestamp BETWEEN :start AND :end " +
+            "GROUP BY app, uri")
+    List<ViewStats> findViews(LocalDateTime start, LocalDateTime end, List<String> uris);
 
-    List<HitModel> findAllByTimestampBetween(LocalDateTime start, LocalDateTime end);
+    @Query("SELECT uri AS uri, app AS app, COUNT(DISTINCT ip) AS hit " +
+            "FROM HitModel " +
+            "WHERE :uris IS NULL OR uri IN :uris " +
+            "AND timestamp BETWEEN :start AND :end " +
+            "GROUP BY app, uri, ip")
+    List<ViewStats> findUniqueViews(LocalDateTime start, LocalDateTime end, List<String> uris);
 }

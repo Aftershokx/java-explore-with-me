@@ -4,7 +4,6 @@ import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 @Getter
 @Setter
@@ -26,18 +25,4 @@ public class Participation {
     private User requester;
     @Enumerated(EnumType.STRING)
     private StatusRequest status;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Participation that = (Participation) o;
-        return id.equals(that.id) && created.equals(that.created) && event.equals(that.event) && requester
-                .equals(that.requester) && status == that.status;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, created, event, requester, status);
-    }
 }

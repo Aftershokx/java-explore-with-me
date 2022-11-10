@@ -2,6 +2,7 @@ package ru.practicum.main_server.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.main_server.dto.CommentDto;
 import ru.practicum.main_server.dto.EventResponseDto;
 import ru.practicum.main_server.dto.EventShortDto;
 import ru.practicum.main_server.service.EventService;
@@ -20,16 +21,16 @@ public class EventPublicController {
     }
 
     @GetMapping()
-    List<EventShortDto> getEvents(@RequestParam(required = false) String text,
-                                  @RequestParam List<Long> categories,
-                                  @RequestParam Boolean paid,
-                                  @RequestParam String rangeStart,
-                                  @RequestParam String rangeEnd,
-                                  @RequestParam Boolean onlyAvailable,
-                                  @RequestParam String sort,
-                                  @RequestParam(defaultValue = "0") int from,
-                                  @RequestParam(defaultValue = "10") int size,
-                                  HttpServletRequest request) {
+    public List<EventShortDto> getEvents(@RequestParam(required = false) String text,
+                                         @RequestParam List<Long> categories,
+                                         @RequestParam Boolean paid,
+                                         @RequestParam(required = false) String rangeStart,
+                                         @RequestParam(required = false) String rangeEnd,
+                                         @RequestParam(defaultValue = "false") Boolean onlyAvailable,
+                                         @RequestParam(defaultValue = "EVENT_DATE", required = false) String sort,
+                                         @RequestParam(defaultValue = "0") int from,
+                                         @RequestParam(defaultValue = "10") int size,
+                                         HttpServletRequest request) {
         eventService.sentHitStat(request);
         log.info("Get events(), text " + text + " , categories " + categories + " , paid " + paid +
                 " , rangeStart " + rangeStart + " , rangeEnd " + rangeEnd + " , onlyAvailable " + onlyAvailable +
@@ -39,9 +40,15 @@ public class EventPublicController {
     }
 
     @GetMapping("/{id}")
-    EventResponseDto getEventById(@PathVariable long id, HttpServletRequest request) {
+    public EventResponseDto getEventById(@PathVariable long id, HttpServletRequest request) {
         eventService.sentHitStat(request);
         log.info("Get get event by id(), id " + id);
         return eventService.getEventById(id);
+    }
+
+    @GetMapping("/{eventId}/comments")
+    public List<CommentDto> getComments(@PathVariable long eventId) {
+        log.info("Get comments(), eventId " + eventId);
+        return eventService.getCommentsByEvent(eventId);
     }
 }

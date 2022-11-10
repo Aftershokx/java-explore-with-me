@@ -1,14 +1,12 @@
 package ru.practicum.stats_server.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,6 +15,7 @@ import java.time.LocalDateTime;
 public class HitModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
     @Column(name = "app", length = 50)
     private String app;
@@ -26,4 +25,7 @@ public class HitModel {
     private String ip;
     @Column(name = "timestamp")
     private LocalDateTime timestamp;
+
+    @Transient
+    private long hits;
 }

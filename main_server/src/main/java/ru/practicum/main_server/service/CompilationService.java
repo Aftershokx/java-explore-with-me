@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 public class CompilationService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
-    private final EventService eventService;
 
     public List<CompilationResponseDto> getCompilations(Boolean pinned, int from, int size) {
         return compilationRepository.findAllByPinned(pinned, PageRequest.of(from / size, size))
@@ -64,13 +63,7 @@ public class CompilationService {
     public void deleteEventFromCompilation(Long compId, Long eventId) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new ObjectNotFoundException("Compilation not found"));
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new ObjectNotFoundException("Event not found"));
-        if (compilation.getEvents().contains(event)) {
-            compilation.getEvents().remove(event);
-        } else {
-            throw new ObjectNotFoundException("Event not found");
-        }
+        compilation.getEvents().removeIf(e -> eventId.equals(e.getId()));
         compilationRepository.save(compilation);
     }
 
@@ -100,10 +93,7 @@ public class CompilationService {
     }
 
     private CompilationResponseDto setViewsAndConfirmedRequestsInDto(CompilationResponseDto compilationResponseDto) {
-        List<EventShortDto> eventShortDtoList = compilationResponseDto.getEvents()
-                .stream()
-                .map(eventService::setConfirmedRequestsAndViewsEventShortDto)
-                .collect(Collectors.toList());
+        List<EventShortDto> eventShortDtoList = compilationResponseDto.getEvents();
         compilationResponseDto.setEvents(eventShortDtoList);
         return compilationResponseDto;
     }

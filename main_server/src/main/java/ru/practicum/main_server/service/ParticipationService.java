@@ -9,6 +9,7 @@ import ru.practicum.main_server.exception.ObjectNotFoundException;
 import ru.practicum.main_server.exception.WrongRequestException;
 import ru.practicum.main_server.mapper.ParticipationMapper;
 import ru.practicum.main_server.model.*;
+import ru.practicum.main_server.repository.EventRepository;
 import ru.practicum.main_server.repository.ParticipationRepository;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 public class ParticipationService {
     private final ParticipationRepository participationRepository;
+    private final EventRepository eventRepository;
     private final UserService userService;
     private final EventService eventService;
 
@@ -46,9 +48,10 @@ public class ParticipationService {
         if (!(event.getState().equals(State.PUBLISHED))) {
             throw new WrongRequestException("you can not request not published event");
         }
-        int confirmedRequests = participationRepository.countDistinctByEventAndStatus(event, StatusRequest.CONFIRMED);
+        event.setConfirmedReq(event.getConfirmedReq() + 1);
+        eventRepository.save(event);
         if (event.getParticipantLimit() != null && event.getParticipantLimit() != 0 && event
-                .getParticipantLimit() <= confirmedRequests) {
+                .getParticipantLimit() <= event.getConfirmedReq()) {
             throw new WrongRequestException("Participant limit already full");
         }
         Participation participation = Participation.builder()
@@ -98,9 +101,12 @@ public class ParticipationService {
         if (!participation.getStatus().equals(StatusRequest.PENDING)) {
             throw new WrongRequestException("Only status pending can be approval");
         }
-        int countConfirmedRequests = participationRepository.countByEventIdAndStatus(eventId, StatusRequest.CONFIRMED);
-        if (event.getParticipantLimit() >= countConfirmedRequests) {
+        if (event.getParticipantLimit() >= event.getConfirmedReq()) {
             participation.setStatus(StatusRequest.REJECTED);
+            event.setConfirmedReq(event.getConfirmedReq() + 1);
+            eventRepository.save(event);
+        } else {
+            throw new WrongRequestException("Event participation limit has reached");
         }
         participation.setStatus(StatusRequest.CONFIRMED);
         return ParticipationMapper.toParticipationRequestDto(participationRepository.save(participation));

@@ -5,19 +5,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.stats_server.dto.EndpointHit;
-import ru.practicum.stats_server.dto.ViewStats;
+import ru.practicum.stats_server.dto.ViewStatsDto;
 import ru.practicum.stats_server.mapper.HitMapper;
 import ru.practicum.stats_server.model.HitModel;
 import ru.practicum.stats_server.repository.HitRepository;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,48 +23,31 @@ import java.util.stream.Collectors;
 public class HitService {
     private final HitRepository hitRepository;
 
-    public static <T> Predicate<T> distinctByKey(
-            Function<? super T, ?> keyExtractor) {
-
-        Map<Object, Boolean> seen = new ConcurrentHashMap<>();
-        return t -> seen.putIfAbsent(keyExtractor.apply(t), Boolean.TRUE) == null;
-    }
-
     @Transactional
-    public EndpointHit createHit(EndpointHit endpointHit) {
+    public void createHit(EndpointHit endpointHit) {
         HitModel hitModel = HitMapper.toHitModel(endpointHit);
-        return HitMapper.toEndpointHit(hitRepository.save(hitModel));
+        hitRepository.save(hitModel);
     }
 
-    public List<ViewStats> getViewStats(String start, String end, List<String> uris, Boolean unique) {
-        LocalDateTime startDate = LocalDateTime.parse(
-                start, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-        );
-        LocalDateTime endDate = LocalDateTime.parse(end, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        List<ViewStats> viewStatsList = new ArrayList<>();
-        if (uris == null) {
-            uris = hitRepository.findAllByTimestampBetween(startDate, endDate)
+    public List<ViewStatsDto> getViewStats(String start, String end, List<String> uris, boolean unique) {
+        LocalDateTime startDate = toLocalDateTime(start);
+        LocalDateTime endDate = toLocalDateTime(end);
+        if (unique) {
+            return hitRepository.findUniqueViews(startDate, endDate, uris)
                     .stream()
-                    .map(HitModel::getUri)
-                    .distinct()
+                    .map(HitMapper::toViewStatsDto)
+                    .collect(Collectors.toList());
+        } else {
+            return hitRepository.findViews(startDate, endDate, uris)
+                    .stream()
+                    .map(HitMapper::toViewStatsDto)
                     .collect(Collectors.toList());
         }
-        for (String uri : uris) {
-            List<HitModel> models = hitRepository.findAllByUriAndTimestampBetween(uri, startDate, endDate);
-            if (Boolean.TRUE.equals(unique)) {
-                models = models
-                        .stream()
-                        .filter(distinctByKey(HitModel::getIp))
-                        .collect(Collectors.toList());
-            }
-            if (!models.isEmpty()) {
-                viewStatsList.add(ViewStats.builder()
-                        .app(models.get(0).getApp())
-                        .uri(uri)
-                        .hits(models.size())
-                        .build());
-            }
-        }
-        return viewStatsList;
+    }
+
+    private LocalDateTime toLocalDateTime(String date) {
+        String decodeDate = URLDecoder.decode(date, StandardCharsets.UTF_8);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return LocalDateTime.parse(decodeDate, formatter);
     }
 }

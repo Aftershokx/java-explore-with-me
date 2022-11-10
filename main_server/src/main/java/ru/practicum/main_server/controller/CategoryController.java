@@ -18,14 +18,14 @@ public class CategoryController {
     }
 
     @GetMapping
-    List<CategoryResponseDto> getCategories(@RequestParam(defaultValue = "0") int from,
-                                            @RequestParam(defaultValue = "10") int size) {
+    public List<CategoryResponseDto> getCategories(@RequestParam(defaultValue = "0") int from,
+                                                   @RequestParam(defaultValue = "10") int size) {
         log.info("Get categories() from " + from + " ,size " + size);
         return categoryService.getCategories(from, size);
     }
 
     @GetMapping("/{id}")
-    CategoryResponseDto getCategoryById(@PathVariable long id) {
+    public CategoryResponseDto getCategoryById(@PathVariable long id) {
         log.info("Get categoryById() " + id);
         return categoryService.getCategoryById(id);
     }

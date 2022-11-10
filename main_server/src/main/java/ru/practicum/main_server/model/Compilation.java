@@ -4,7 +4,6 @@ import lombok.*;
 
 import javax.persistence.*;
 import java.util.List;
-import java.util.Objects;
 
 @Setter
 @Getter
@@ -30,18 +29,4 @@ public class Compilation {
     private String title;
     @Column(name = "pinned")
     private boolean pinned;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Compilation that = (Compilation) o;
-        return pinned == that.pinned && id.equals(that.id) && Objects.equals(events, that.events) && title
-                .equals(that.title);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, events, title, pinned);
-    }
 }
