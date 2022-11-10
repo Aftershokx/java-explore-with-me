@@ -4,7 +4,6 @@ import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @ToString
 @Getter
@@ -48,6 +47,4 @@ public class Event {
     private String title;
     @Column
     private Long views;
-    @Transient
-    private List<Comment> comments;
 }

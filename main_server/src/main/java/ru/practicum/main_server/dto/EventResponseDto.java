@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 import ru.practicum.main_server.model.Location;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Builder
@@ -39,5 +38,4 @@ public class EventResponseDto {
     private String state;
     private String title;
     private long views;
-    private List<CommentDto> comments;
 }
