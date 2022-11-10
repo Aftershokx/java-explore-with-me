@@ -1,7 +1,6 @@
 package ru.practicum.main_server.mapper;
 
 import ru.practicum.main_server.dto.CommentDto;
-import ru.practicum.main_server.model.Comment;
 import ru.practicum.main_server.model.Event;
 import ru.practicum.main_server.model.User;
 
