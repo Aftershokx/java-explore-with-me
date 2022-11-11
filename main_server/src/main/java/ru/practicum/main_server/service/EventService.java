@@ -21,7 +21,9 @@ import ru.practicum.main_server.repository.EventRepository;
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -280,8 +282,10 @@ public class EventService {
                 LocalDateTime.now(),
                 List.of("/events/" + eventId),
                 false);
-        if (Objects.equals(responseEntity.getBody(), "")) {
-            return (Long) ((LinkedHashMap<?, ?>) responseEntity.getBody()).get("hits");
+
+        if (responseEntity.getBody() != null || responseEntity.getBody() != "") {
+            String result = responseEntity.getBody().toString();
+            return Long.parseLong(result.substring(result.indexOf("hits=") + 5, result.indexOf("}")));
         }
         return 0;
     }
