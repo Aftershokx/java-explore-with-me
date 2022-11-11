@@ -78,7 +78,6 @@ public class EventService {
         if (!(event.getState().equals(State.PUBLISHED))) {
             throw new WrongRequestException("Wrong state by request");
         }
-        viewsCounter(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -154,7 +153,6 @@ public class EventService {
         if (!event.getInitiator().getId().equals(userId)) {
             throw new WrongRequestException("only initiator can get fullEventDto");
         }
-        viewsCounter(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -168,7 +166,6 @@ public class EventService {
             throw new WrongRequestException("you can cancel only pending event");
         }
         event.setState(State.CANCELED);
-        viewsCounter(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -233,7 +230,6 @@ public class EventService {
 
         Optional.ofNullable(adminUpdateEventRequest.getTitle())
                 .ifPresent(event::setTitle);
-        viewsCounter(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -247,7 +243,6 @@ public class EventService {
             throw new WrongRequestException("admin can publish only pending event");
         }
         event.setState(State.PUBLISHED);
-        viewsCounter(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -255,7 +250,6 @@ public class EventService {
     public EventResponseDto rejectEventByAdmin(Long eventId) {
         Event event = checkAndGetEvent(eventId);
         event.setState(State.CANCELED);
-        viewsCounter(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -274,8 +268,4 @@ public class EventService {
         hitClient.createHit(endpointHit);
     }
 
-    private void viewsCounter(Event event) {
-        event.setViews(event.getViews() + 1);
-        eventRepository.save(event);
-    }
 }
