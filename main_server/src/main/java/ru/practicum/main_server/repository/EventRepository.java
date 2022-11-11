@@ -71,6 +71,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             "AND (e.eventDate <= :end)")
     List<Event> searchEventsByAdmin(List<Long> users, List<State> states, List<Long> categories,
                                     LocalDateTime start, LocalDateTime end, PageRequest pageRequest);
-}
 
+}
 

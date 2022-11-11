@@ -48,10 +48,9 @@ public class ParticipationService {
         if (!(event.getState().equals(State.PUBLISHED))) {
             throw new WrongRequestException("you can not request not published event");
         }
-        event.setConfirmedReq(event.getConfirmedReq() + 1);
-        eventRepository.save(event);
+        int confirmedReq = participationRepository.countDistinctByEventAndStatus(event, StatusRequest.CONFIRMED);
         if (event.getParticipantLimit() != null && event.getParticipantLimit() != 0 && event
-                .getParticipantLimit() <= event.getConfirmedReq()) {
+                .getParticipantLimit() <= confirmedReq) {
             throw new WrongRequestException("Participant limit already full");
         }
         Participation participation = Participation.builder()
@@ -63,7 +62,10 @@ public class ParticipationService {
         if (event.isRequestModeration()) {
             participation.setStatus(StatusRequest.PENDING);
         }
-
+        if (participation.getStatus().equals(StatusRequest.CONFIRMED)) {
+            event.setConfirmedReq(confirmedReq + 1L);
+            eventRepository.save(event);
+        }
         return ParticipationMapper.toParticipationRequestDto(participationRepository.save(participation));
     }
 
@@ -101,10 +103,9 @@ public class ParticipationService {
         if (!participation.getStatus().equals(StatusRequest.PENDING)) {
             throw new WrongRequestException("Only status pending can be approval");
         }
-        if (event.getParticipantLimit() >= event.getConfirmedReq()) {
+        int countConfirmedRequests = participationRepository.countByEventIdAndStatus(eventId, StatusRequest.CONFIRMED);
+        if (event.getParticipantLimit() >= countConfirmedRequests) {
             participation.setStatus(StatusRequest.REJECTED);
-            event.setConfirmedReq(event.getConfirmedReq() + 1);
-            eventRepository.save(event);
         } else {
             throw new WrongRequestException("Event participation limit has reached");
         }

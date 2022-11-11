@@ -3,6 +3,7 @@ package ru.practicum.main_server.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.main_server.client.HitClient;
@@ -12,18 +13,12 @@ import ru.practicum.main_server.exception.WrongRequestException;
 import ru.practicum.main_server.mapper.CommentMapper;
 import ru.practicum.main_server.mapper.EventMapper;
 import ru.practicum.main_server.model.*;
-import ru.practicum.main_server.repository.CategoryRepository;
-import ru.practicum.main_server.repository.CommentRepository;
-import ru.practicum.main_server.repository.EventRepository;
-import ru.practicum.main_server.repository.UserRepository;
+import ru.practicum.main_server.repository.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +28,7 @@ public class EventService {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final EventRepository eventRepository;
+    private final ParticipationRepository participationRepository;
     private final UserService userService;
     private final HitClient hitClient;
     private final UserRepository userRepository;
@@ -82,7 +78,7 @@ public class EventService {
             throw new WrongRequestException("Wrong state by request");
         }
         setComments(event);
-        viewsCounter(event);
+        setViewsEvent(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -161,7 +157,6 @@ public class EventService {
             throw new WrongRequestException("only initiator can get fullEventDto");
         }
         setComments(event);
-        viewsCounter(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -176,7 +171,6 @@ public class EventService {
         }
         event.setState(State.CANCELED);
         setComments(event);
-        viewsCounter(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -245,7 +239,6 @@ public class EventService {
         Optional.ofNullable(adminUpdateEventRequest.getTitle())
                 .ifPresent(event::setTitle);
         setComments(event);
-        viewsCounter(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -260,7 +253,6 @@ public class EventService {
         }
         event.setState(State.PUBLISHED);
         setComments(event);
-        viewsCounter(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -269,7 +261,6 @@ public class EventService {
         Event event = checkAndGetEvent(eventId);
         event.setState(State.CANCELED);
         setComments(event);
-        viewsCounter(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -355,8 +346,22 @@ public class EventService {
         }
     }
 
-    private void viewsCounter(Event event) {
-        event.setViews(event.getViews() + 1);
+    @Transactional
+    public void setViewsEvent(Event event) {
+        event.setViews(getViews(event.getId()));
         eventRepository.save(event);
     }
+
+    public long getViews(long eventId) {
+        ResponseEntity<Object> responseEntity = hitClient.getStat(
+                LocalDateTime.now().minusYears(2),
+                LocalDateTime.now(),
+                List.of("/events/" + eventId),
+                false);
+        if (Objects.equals(responseEntity.getBody(), "")) {
+            return (Long) ((LinkedHashMap<?, ?>) responseEntity.getBody()).get("hits");
+        }
+        return 0;
+    }
+
 }
