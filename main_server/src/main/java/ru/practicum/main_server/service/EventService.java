@@ -3,6 +3,7 @@ package ru.practicum.main_server.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.main_server.client.HitClient;
@@ -20,9 +21,7 @@ import ru.practicum.main_server.repository.EventRepository;
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -78,6 +77,7 @@ public class EventService {
         if (!(event.getState().equals(State.PUBLISHED))) {
             throw new WrongRequestException("Wrong state by request");
         }
+        setViewsEvent(event);
         return EventMapper.toEventFullDto(event);
     }
 
@@ -266,6 +266,24 @@ public class EventService {
                 .timestamp(LocalDateTime.now().format(DATE_TIME_FORMATTER))
                 .build();
         hitClient.createHit(endpointHit);
+    }
+
+    @Transactional
+    public void setViewsEvent(Event event) {
+        event.setViews(getViews(event.getId()));
+        eventRepository.save(event);
+    }
+
+    public long getViews(long eventId) {
+        ResponseEntity<Object> responseEntity = hitClient.getStat(
+                LocalDateTime.now().minusYears(2),
+                LocalDateTime.now(),
+                List.of("/events/" + eventId),
+                false);
+        if (Objects.equals(responseEntity.getBody(), "")) {
+            return (Long) ((LinkedHashMap<?, ?>) responseEntity.getBody()).get("hits");
+        }
+        return 0;
     }
 
 }
