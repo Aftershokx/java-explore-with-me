@@ -286,9 +286,16 @@ public class EventService {
 
     @Transactional
     public Comment addComment(long userId, long eventId, CommentDto commentDto) {
-        return commentRepository.save(CommentMapper.toComment(commentDto,
-                userRepository.findById(userId).orElseThrow(() -> new ObjectNotFoundException("User not found")),
-                eventRepository.findById(eventId).orElseThrow(() -> new ObjectNotFoundException("Event not found"))));
+        Event event = eventRepository.findById(eventId).orElseThrow(() ->
+                new ObjectNotFoundException("Event not found"));
+        if (event.getState().equals(State.PUBLISHED)) {
+            return commentRepository.save(CommentMapper.toComment(commentDto,
+                    userRepository.findById(userId).orElseThrow(() -> new ObjectNotFoundException("User not found")),
+                    event));
+        } else {
+            throw new ObjectNotFoundException("Users cant comment unpublished events");
+        }
+
     }
 
     @Transactional
