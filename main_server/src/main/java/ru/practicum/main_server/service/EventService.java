@@ -28,7 +28,6 @@ public class EventService {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final EventRepository eventRepository;
-    private final ParticipationRepository participationRepository;
     private final UserService userService;
     private final HitClient hitClient;
     private final UserRepository userRepository;
@@ -286,14 +285,6 @@ public class EventService {
                 eventRepository.findById(eventId).orElseThrow(() -> new ObjectNotFoundException("Event not found"))));
     }
 
-    public List<CommentDto> getCommentsByEvent(long eventId) {
-        return commentRepository.findAllByEvent_Id(eventId).orElseThrow(() ->
-                        new ObjectNotFoundException("Comments not found"))
-                .stream()
-                .map(CommentMapper::toCommentDto)
-                .collect(Collectors.toList());
-    }
-
     @Transactional
     public Comment updateCommentByUser(long userId, long eventId, long commentId, CommentDto commentDto) {
         Comment oldComment = commentRepository.findById(commentId).orElseThrow(() ->
@@ -358,8 +349,9 @@ public class EventService {
                 LocalDateTime.now(),
                 List.of("/events/" + eventId),
                 false);
-        if (Objects.equals(responseEntity.getBody(), "")) {
-            return (Long) ((LinkedHashMap<?, ?>) responseEntity.getBody()).get("hits");
+        if (responseEntity.getBody() != null || responseEntity.getBody() != "") {
+            String result = responseEntity.getBody().toString();
+            return Long.parseLong(result.substring(result.indexOf("hits=") + 5, result.indexOf("}")));
         }
         return 0;
     }

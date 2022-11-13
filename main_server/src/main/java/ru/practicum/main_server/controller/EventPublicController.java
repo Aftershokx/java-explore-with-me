@@ -45,10 +45,4 @@ public class EventPublicController {
         log.info("Get get event by id(), id " + id);
         return eventService.getEventById(id);
     }
-
-    @GetMapping("/{eventId}/comments")
-    public List<CommentDto> getComments(@PathVariable long eventId) {
-        log.info("Get comments(), eventId " + eventId);
-        return eventService.getCommentsByEvent(eventId);
-    }
 }
