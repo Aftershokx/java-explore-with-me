@@ -2,7 +2,6 @@ package ru.practicum.main_server.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.main_server.dto.CommentDto;
 import ru.practicum.main_server.dto.EventResponseDto;
 import ru.practicum.main_server.dto.EventShortDto;
 import ru.practicum.main_server.service.EventService;

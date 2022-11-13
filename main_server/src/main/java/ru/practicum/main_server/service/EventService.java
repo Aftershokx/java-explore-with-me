@@ -13,12 +13,18 @@ import ru.practicum.main_server.exception.WrongRequestException;
 import ru.practicum.main_server.mapper.CommentMapper;
 import ru.practicum.main_server.mapper.EventMapper;
 import ru.practicum.main_server.model.*;
-import ru.practicum.main_server.repository.*;
+import ru.practicum.main_server.repository.CategoryRepository;
+import ru.practicum.main_server.repository.CommentRepository;
+import ru.practicum.main_server.repository.EventRepository;
+import ru.practicum.main_server.repository.UserRepository;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
