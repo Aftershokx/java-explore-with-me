@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main_server.dto.*;
+import ru.practicum.main_server.mapper.CommentMapper;
 import ru.practicum.main_server.service.EventService;
 import ru.practicum.main_server.service.ParticipationService;
 
@@ -83,5 +84,23 @@ public class EventPrivateController {
         log.info("Patch reject participation event request(), userId " + userId + " , eventId " + eventId +
                 " , reqId " + reqId);
         return participationService.rejectParticipationEventRequest(userId, eventId, reqId);
+    }
+
+    @PatchMapping("/{eventId}/comments/{commentId}")
+    public CommentDto updateComment(@PathVariable long userId,
+                                    @PathVariable long eventId,
+                                    @PathVariable long commentId,
+                                    @RequestBody CommentDto commentDto) {
+        log.info("Patch update comment(), userId " + userId + " , eventId " + eventId + " , commentId " + commentId +
+                " , body " + commentDto);
+        return CommentMapper.toCommentDto(eventService.updateCommentByUser(userId, eventId, commentId, commentDto));
+    }
+
+    @PostMapping("/{eventId}/comments")
+    public CommentDto addComment(@PathVariable long userId,
+                                 @PathVariable long eventId,
+                                 @RequestBody CommentDto commentDto) {
+        log.info("Post add comment(), userId " + userId + " , eventId " + eventId + " , body " + commentDto);
+        return CommentMapper.toCommentDto(eventService.addComment(userId, eventId, commentDto));
     }
 }

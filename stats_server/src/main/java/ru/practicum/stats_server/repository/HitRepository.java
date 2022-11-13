@@ -9,14 +9,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface HitRepository extends JpaRepository<HitModel, Long> {
-    @Query("SELECT app AS app, uri AS uri, COUNT(ip) AS hits " +
+    @Query("SELECT app AS app, uri AS uri, COUNT(ip) AS hit " +
             "FROM HitModel " +
             "WHERE :uris IS NULL OR uri IN :uris " +
             "AND timestamp BETWEEN :start AND :end " +
             "GROUP BY app, uri")
     List<ViewStats> findViews(LocalDateTime start, LocalDateTime end, List<String> uris);
 
-    @Query("SELECT uri AS uri, app AS app, COUNT(DISTINCT ip) AS hits " +
+    @Query("SELECT uri AS uri, app AS app, COUNT(DISTINCT ip) AS hit " +
             "FROM HitModel " +
             "WHERE :uris IS NULL OR uri IN :uris " +
             "AND timestamp BETWEEN :start AND :end " +

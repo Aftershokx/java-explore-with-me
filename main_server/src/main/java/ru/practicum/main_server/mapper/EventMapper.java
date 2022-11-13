@@ -8,6 +8,7 @@ import ru.practicum.main_server.model.Event;
 import ru.practicum.main_server.model.State;
 
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 @UtilityClass
 public class EventMapper {
@@ -42,6 +43,7 @@ public class EventMapper {
                 .publishedOn(event.getPublishedOn() == null ? null : event.getPublishedOn())
                 .requestModeration(event.isRequestModeration())
                 .state(event.getState().toString())
+                .comments(event.getComments().stream().map(CommentMapper::toCommentDto).collect(Collectors.toList()))
                 .confirmedRequests(event.getConfirmedReq() == null ? 0L : event.getConfirmedReq())
                 .views(event.getViews() == null ? 0L : event.getViews())
                 .build();
