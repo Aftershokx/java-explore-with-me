@@ -44,5 +44,4 @@ public class EventPublicController {
         log.info("Get get event by id(), id " + id);
         return eventService.getEventById(id);
     }
-
 }

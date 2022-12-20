@@ -4,7 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main_server.dto.AdminUpdateEventRequest;
+import ru.practicum.main_server.dto.CommentDto;
 import ru.practicum.main_server.dto.EventResponseDto;
+import ru.practicum.main_server.mapper.CommentMapper;
 import ru.practicum.main_server.model.State;
 import ru.practicum.main_server.service.EventService;
 
@@ -51,6 +53,22 @@ public class EventAdminController {
     public EventResponseDto rejectEventByAdmin(@PathVariable Long eventId) {
         log.info("Patch reject event by admin() " + eventId);
         return eventService.rejectEventByAdmin(eventId);
+    }
+
+    @PatchMapping("/{eventId}/comments/{commentId}")
+    public CommentDto updateComment(@PathVariable long eventId,
+                                    @PathVariable long commentId,
+                                    @RequestBody CommentDto commentDto) {
+        log.info("Patch update comment(), eventId " + eventId + " , commentId " + commentId +
+                " , body " + commentDto);
+        return CommentMapper.toCommentDto(eventService.updateCommentByAdmin(eventId, commentId, commentDto));
+    }
+
+    @DeleteMapping("/{eventId}/comments/{commentId}")
+    public void deleteComment(@PathVariable long eventId,
+                              @PathVariable long commentId) {
+        log.info("Delete delete comment(), eventId " + eventId + " , commentId " + commentId);
+        eventService.deleteComment(eventId, commentId);
     }
 
 }
